@@ -40,7 +40,7 @@ PASSWORD = config.get('login', 'password')
 LOGIN_URL = 'https://forum.genua-bei-nacht.de/ucp.php?mode=login&redirect=index.php'
 
 #blacklist
-BLACKLIST = config.get('settings', 'blacklist').split(', ')
+BLACKLIST = config.get('settings', 'blacklist', fallback='').split(', ')
 
 class PhpbbSpider(scrapy.Spider):
     

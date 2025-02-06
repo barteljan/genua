@@ -37,7 +37,7 @@ def search_filtered_lists():
     config = configparser.ConfigParser()
     config_path = os.path.join(os.path.dirname(__file__), 'config/config.ini')
     config.read(config_path)
-    filtered_lists = config.get('settings', 'filtered_lists').split(', ')
+    filtered_lists = config.get('settings', 'filtered_lists', fallback='').split(', ')
     input_file = '../build/posts-sorted.json'
 
     for item in filtered_lists:
