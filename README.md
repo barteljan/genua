@@ -10,13 +10,13 @@ Python-based web scraper for genua-bei-nacht.de.
 ## Install dependencies
 create virtual environment
 
-'''python3 -m venv .venv'''
+`python3 -m venv .venv`
 
 install dependencies
 
-'''./.venv/bin/pip install -r requirements.txt'''
+`./.venv/bin/pip install -r requirements.txt`
 
-'''source ./.venv/bin/activate'''
+`source ./.venv/bin/activate`
 
 ## Create `config/config.ini` from `config/config.ini.example`
 
