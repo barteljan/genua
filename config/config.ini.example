@@ -1,0 +1,7 @@
+[login]
+username = YOUR_USER_NAME
+password = YOUR_PASSWORD
+
+[settings]
+blacklist = Archiv, Genuas Tage, Genuas Morgengrauen
+filtered_lists = Godeoc, Salvador, Benedetto, Il Ghiotto, Lydiadas
