@@ -1,9 +1,6 @@
-# phpBB Forum Scraper
+# Genua-Bei-Nacht Scraper
 
-Python-based web scraper for phpBB forums. Project can be used as a template for building your own
-custom Scrapy spiders or for one-off crawls on designated forums. Please keep in mind that aggressive crawls
-can produce significant strain on web servers, so please throttle your request rates.
-
+Python-based web scraper for genua-bei-nacht.de.
 
 ## Requirements: 
 
