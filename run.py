@@ -46,6 +46,20 @@ def search_filtered_lists():
         subprocess.run(["python", "search.py", input_file, output_file, item], check=True, cwd="phpBB_scraper")
         print(f"Results for {item} saved to {output_file}")
 
+def search_user_threads():
+    print("Reading filtered lists from config file...")
+    config = configparser.ConfigParser()
+    config_path = os.path.join(os.path.dirname(__file__), 'config/config.ini')
+    config.read(config_path)
+    search_items = config.get('settings', 'user_filter', fallback='').split(', ')
+    input_file = '../build/posts-sorted.json'
+
+    for item in search_items:
+        search_term = item.replace(' ', '_')
+        output_file = f'../build/{search_term}.json'
+        subprocess.run(["python", "search-user-threads.py", input_file, output_file, item], check=True, cwd="phpBB_scraper")
+        print(f"Results for {item} saved to {output_file}")
+
 def run_to_text():
     print("Running to-text.py to convert JSON files to text...")
     json_files = glob.glob('./build/*.json')
@@ -61,5 +75,6 @@ if __name__ == "__main__":
     run_scrapy()
     run_sort()
     search_filtered_lists()
+    search_user_threads()
     run_split()
     run_to_text()
