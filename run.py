@@ -8,7 +8,7 @@ def delete_files():
     print("Deleting all JSON and TXT files in the build folder...")
     files = glob.glob('./build/*')
     for file in files:
-        if file.endswith('.json') or file.endswith('.txt'):
+        if file.endswith('.json') or file.endswith('.txt') or file.endswith('.pdf'):
             os.remove(file)
             print(f"Deleted {file}")
 
@@ -70,6 +70,14 @@ def run_to_text():
         subprocess.run(["python", "to-text.py", "." + json_file, "." + text_file], check=True, cwd="phpBB_scraper")
         print(f"Converted {json_file} to text")
 
+def convert_txt_to_pdf():
+    print("Converting all .txt files in ./build/ to PDFs...")
+    txt_files = glob.glob("./build/*.txt")
+    for txt_file in txt_files:
+        pdf_file = txt_file.replace(".txt", ".pdf")
+        subprocess.run(["python", "to-pdf.py", "." + txt_file, "." + pdf_file], check=True, cwd="phpBB_scraper")
+        print(f"Converted {txt_file} to {pdf_file}")
+
 if __name__ == "__main__":
     delete_files()
     run_scrapy()
@@ -78,3 +86,4 @@ if __name__ == "__main__":
     search_user_threads()
     run_split()
     run_to_text()
+    convert_txt_to_pdf()

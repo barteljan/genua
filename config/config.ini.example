@@ -3,6 +3,6 @@ username = YOUR_USER_NAME
 password = YOUR_PASSWORD
 
 [settings]
-blacklist = Archiv, Genuas Tage, Genuas Morgengrauen
+blacklist = Genuas Tage, Genuas Morgengrauen
 filtered_lists = Godeoc, Salvador, Benedetto, Il Ghiotto, Lydiadas
 user_filter = Il Canzoniere, La Cronista
