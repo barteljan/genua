@@ -1,33 +1,79 @@
 import json
 import argparse
+import textwrap
 
-def json_to_text(input_file, output_file):
-    with open(input_file, 'r', encoding='utf-8') as file:
-        posts = json.load(file)
+def write_post_to_text(post, file, line_length):
+    """
+    Schreibt alle Eigenschaften eines einzelnen Posts in die Textdatei.
+    Jede Eigenschaft wird untereinander dargestellt, mit ihrem Namen gefolgt von einem Doppelpunkt.
+    Fügt am Anfang jedes Posts eine Linie aus '_' ein, die so lang ist wie die line_length.
+    """
+    # Linie aus '_' einfügen
+    file.write("_" * line_length + "\n")
+    
+    # Schreibe alle Eigenschaften des Posts
+    for key, value in post.items():
+        if isinstance(value, str):
+            # Brich lange Texte um und berücksichtige Zeilenumbrüche
+            wrapped_value = wrap_text(value, line_length)
+            file.write(f"{key}: {wrapped_value}\n")
+        else:
+            # Schreibe andere Datentypen direkt
+            file.write(f"{key}: {value}\n")
+    file.write("\n")  # Leerzeile zwischen Posts
 
-    with open(output_file, 'w', encoding='utf-8') as file:
-        for post in posts:
-            file.write(f"Username: {post.get('Username', '')}\n")
-            file.write(f"URL: {post.get('URL', '')}\n")
-            file.write(f"Title: {post.get('Title', '')}\n")
-            file.write(f"Forum: {post.get('Forum', '')}\n")
-            file.write(f"PostTime: {post.get('PostTime', '')}\n")
-            file.write(f"PostText:\n{post.get('PostText', '')}\n")
-            file.write(f"QuoteText:\n{post.get('QuoteText', '')}\n")
-            file.write('\n' + '-'*80 + '\n\n')  # Add a separator between posts
+def write_tree_to_text(tree, file, line_length):
+    """
+    Rekursive Funktion, um den Baum in eine Textdatei zu schreiben.
+    Die Hierarchie des Baums wird durch Überschriften dargestellt.
+    Der Titel des Threads wird einmal über alle Posts des Threads geschrieben.
+    """
+    if isinstance(tree, dict):
+        for key, value in tree.items():
+            if isinstance(value, dict) and "Posts" in value:
+                # Schreibe den Thread-Titel
+                file.write(f"\nThread: {key}\n")
+                file.write("=" * line_length + "\n")  # Linie zur Abgrenzung
+                for post in value["Posts"]:
+                    write_post_to_text(post, file, line_length)
+            elif isinstance(value, dict):
+                # Rekursiv durch andere Unterknoten navigieren
+                write_tree_to_text(value, file, line_length)
+            else:
+                # Unerwarteter Wert, ignoriere ihn oder logge eine Warnung
+                print(f"Warning: Unexpected value for key '{key}': {value}")
+    elif isinstance(tree, list):
+        for item in tree:
+            write_tree_to_text(item, file, line_length)
+    else:
+        # Unerwarteter Typ, ignoriere ihn oder logge eine Warnung
+        print(f"Warning: Unexpected tree structure: {tree}")
 
-    print(f"All posts have been written to {output_file}")
+def wrap_text(text, line_length):
+    """
+    Bricht den Text nach der angegebenen Länge um und berücksichtigt vorhandene Zeilenumbrüche.
+    """
+    lines = text.split("\n")  # Text anhand von \n in Zeilen aufteilen
+    wrapped_lines = [textwrap.fill(line, width=line_length) for line in lines]
+    return "\n".join(wrapped_lines)
+
+def convert_tree_to_text(input_file, output_file, line_length):
+    """
+    Konvertiert einen Baum aus einer JSON-Datei in eine Textdatei.
+    """
+    with open(input_file, 'r', encoding='utf-8') as infile:
+        post_tree = json.load(infile)
+
+    with open(output_file, 'w', encoding='utf-8') as outfile:
+        write_tree_to_text(post_tree, outfile, line_length)
+
+    print(f"Tree has been converted to text and saved to {output_file}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='''Convert JSON posts to a text file.
-        The input JSON file should contain an array of posts.
-        Each post will be written to the output text file in a readable format.''',
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-    parser.add_argument('input_file', type=str, help='The input JSON file containing posts.')
-    parser.add_argument('output_file', type=str, help='The output text file to write posts to.')
-    
+    parser = argparse.ArgumentParser(description="Convert a post tree JSON file to a structured text file.")
+    parser.add_argument("input_file", type=str, help="The input JSON file containing the post tree.")
+    parser.add_argument("output_file", type=str, help="The output text file to write the tree to.")
+    parser.add_argument("--line-length", type=int, default=75, help="The maximum line length for wrapping text.")
     args = parser.parse_args()
-    
-    json_to_text(args.input_file, args.output_file)
+
+    convert_tree_to_text(args.input_file, args.output_file, args.line_length)

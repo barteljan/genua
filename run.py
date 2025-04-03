@@ -45,19 +45,23 @@ def run_sort():
     # Build the post tree
     print("Building post tree...")
     input_file = '../build/posts-sorted.json'
-    output_file = '../data/post_tree.json'
-    subprocess.run(["python", "build_post_tree.py", input_file, output_file], check=True, cwd="phpBB_scraper")
+    output_file = './data/post_tree.json'
+    subprocess.run(["python", "build_post_tree.py", input_file, "." + output_file], check=True, cwd="phpBB_scraper")
     print("Post tree has been built.")
 
+    cleaned_file = output_file.replace(".json", "_cleaned.json")
+    subprocess.run(["python", "clean_text_file.py", "." + output_file, "." + cleaned_file], check=True, cwd="phpBB_scraper")
+    os.replace(cleaned_file, output_file)
+
+
+
 def run_split():
-    print("Running split.py to split the data into multiple files...")
-    json_files = glob.glob('./build/*.json')
-    for json_file in json_files:
-        if json_file.endswith('posts.json'):
-            continue
-        output_prefix = json_file.replace('.json', '')
-        subprocess.run(["python", "split.py", "." + json_file, "." + output_prefix, "480000"], check=True, cwd="phpBB_scraper")
-        print(f"Splitting completed for {json_file}")
+    print("Running split.py to split the text files into multiple files...")
+    txt_files = glob.glob('./build/*.txt')  # Nur .txt-Dateien auswählen
+    for txt_file in txt_files:
+        output_prefix = txt_file.replace('.txt', '')
+        subprocess.run(["python", "split.py", "." + txt_file, "." + output_prefix, "480000"], check=True, cwd="phpBB_scraper")
+        print(f"Splitting completed for {txt_file}")
 
 def search_filtered_lists():
     print("Reading filtered lists from config file...")
@@ -84,19 +88,26 @@ def search_user_threads():
 
     for item in search_items:
         search_term = item.replace(' ', '_')
-        output_file = f'../build/{search_term}.json'
+        output_file = f'../build/{search_term}_user.json'
         subprocess.run(["python", "search-user-threads.py", input_file, output_file, item], check=True, cwd="phpBB_scraper")
         print(f"Results for {item} saved to {output_file}")
 
 def run_to_text():
     print("Running to-text.py to convert JSON files to text...")
-    json_files = glob.glob('./build/*.json')
+    json_files = glob.glob('./build/*.json')  # Alle JSON-Dateien im build-Verzeichnis
     for json_file in json_files:
-        if json_file.endswith('posts.json'):
-            continue
+        if json_file.endswith('posts-sorted.json'):
+            continue  # Überspringe die posts-sorted.json
+
         text_file = json_file.replace('.json', '.txt')
         subprocess.run(["python", "to-text.py", "." + json_file, "." + text_file], check=True, cwd="phpBB_scraper")
         print(f"Converted {json_file} to text")
+
+    # Verarbeite die data/post_tree.json separat
+    post_tree_file = '../data/post_tree.json'
+    post_tree_text_file = '../build/posts.txt'
+    subprocess.run(["python", "to-text.py", post_tree_file, post_tree_text_file], check=True, cwd="phpBB_scraper")
+    print(f"Converted {post_tree_file} to text")
 
 def convert_txt_to_pdf():
     print("Converting all .txt files in ./build/ to PDFs...")
@@ -130,9 +141,9 @@ if __name__ == "__main__":
     run_sort()
     search_filtered_lists()
     search_user_threads()
-    #run_split()
-    #run_to_text()
+    run_to_text()
     #clean_all_txt_files()
+    run_split()
 
     # Generate PDFs only if --generate-pdfs is set
     if args.generate_pdfs:
