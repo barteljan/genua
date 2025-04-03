@@ -4,13 +4,33 @@ import glob
 import configparser
 import argparse
 
-def delete_files():
-    print("Deleting all JSON and TXT files in the build folder...")
-    files = glob.glob('./build/*')
+def delete_files(skip_posts_json=False, skip_pdfs=False):
+    """
+    Deletes all JSON, TXT, and PDF files in the build directory.
+    If skip_posts_json=True, the posts.json file will not be deleted.
+    If skip_pdfs=True, PDF files will not be deleted.
+    """
+    print("Deleting files in ./build/...")
+
+    build_dir = './build'
+    files = glob.glob(os.path.join(build_dir, '*'))
+
     for file in files:
+        # Skip posts.json if skip_posts_json is enabled
+        if skip_posts_json and os.path.basename(file) == "posts.json":
+            continue
+
+        # Skip PDF files if skip_pdfs is enabled
+        if skip_pdfs and file.endswith('.pdf'):
+            continue
+
+        # Delete JSON, TXT, and PDF files
         if file.endswith('.json') or file.endswith('.txt') or file.endswith('.pdf'):
-            os.remove(file)
-            print(f"Deleted {file}")
+            try:
+                os.remove(file)
+                print(f"Deleted: {file}")
+            except Exception as e:
+                print(f"Failed to delete {file}. Reason: {e}")
 
 def run_scrapy():
     print("Running Scrapy to crawl data...")
@@ -21,6 +41,13 @@ def run_sort():
     print("Running sort.py to sort the data...")
     subprocess.run(["python", "sort.py"], check=True, cwd="phpBB_scraper")
     print("Sorting completed.")
+
+    # Build the post tree
+    print("Building post tree...")
+    input_file = '../build/posts-sorted.json'
+    output_file = '../data/post_tree.json'
+    subprocess.run(["python", "build_post_tree.py", input_file, output_file], check=True, cwd="phpBB_scraper")
+    print("Post tree has been built.")
 
 def run_split():
     print("Running split.py to split the data into multiple files...")
@@ -38,7 +65,7 @@ def search_filtered_lists():
     config_path = os.path.join(os.path.dirname(__file__), 'config/config.ini')
     config.read(config_path)
     filtered_lists = config.get('settings', 'filtered_lists', fallback='').split(', ')
-    input_file = '../build/posts-sorted.json'
+    input_file = '../data/post_tree.json'  # Verwende die post_tree.json als Eingabe
 
     for item in filtered_lists:
         search_term = item.replace(' ', '_')
@@ -52,7 +79,8 @@ def search_user_threads():
     config_path = os.path.join(os.path.dirname(__file__), 'config/config.ini')
     config.read(config_path)
     search_items = config.get('settings', 'user_filter', fallback='').split(', ')
-    input_file = '../build/posts-sorted.json'
+    print(f"Search items: {search_items}")  # Debugging-Ausgabe
+    input_file = '../data/post_tree.json'  # Verwende die post_tree.json als Eingabe
 
     for item in search_items:
         search_term = item.replace(' ', '_')
@@ -84,23 +112,28 @@ def clean_all_txt_files():
     for txt_file in txt_files:
         cleaned_file = txt_file.replace(".txt", "_cleaned.txt")
         subprocess.run(["python", "clean_text_file.py", "." + txt_file, "." + cleaned_file], check=True, cwd="phpBB_scraper")
-        os.replace(cleaned_file, txt_file)  # Ersetze die Originaldatei mit der bereinigten Datei
+        os.replace(cleaned_file, txt_file)  # Replace the original file with the cleaned file
         print(f"Cleaned {txt_file} and saved as {txt_file}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the full pipeline for processing data.")
-    parser.add_argument("--skip-delete", action="store_true", help="Skip deleting files in the build folder.")
+    parser.add_argument("--skip-delete", action="store_true", help="Skip deleting posts.json in the build folder.")
+    parser.add_argument("--generate-pdfs", action="store_true", help="Generate PDFs from .txt files.")
     parser.add_argument("--skip-scrape", action="store_true", help="Skip scraping data with Scrapy.")
     args = parser.parse_args()
 
-    if not args.skip_delete:
-        delete_files()
+    # Delete files based on the options --skip-delete and --generate-pdfs
+    delete_files(skip_posts_json=args.skip_delete, skip_pdfs=not args.generate_pdfs)
+
     if not args.skip_scrape:
         run_scrapy()
     run_sort()
     search_filtered_lists()
     search_user_threads()
-    run_split()
-    run_to_text()
-    clean_all_txt_files()
-    convert_txt_to_pdf()
+    #run_split()
+    #run_to_text()
+    #clean_all_txt_files()
+
+    # Generate PDFs only if --generate-pdfs is set
+    if args.generate_pdfs:
+        convert_txt_to_pdf()
