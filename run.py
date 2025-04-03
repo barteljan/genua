@@ -102,5 +102,5 @@ if __name__ == "__main__":
     search_user_threads()
     run_split()
     run_to_text()
-    #clean_all_txt_files()
+    clean_all_txt_files()
     convert_txt_to_pdf()
