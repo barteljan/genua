@@ -10,6 +10,8 @@ def text_to_pdf(input_file, output_file):
     pdf.add_font("NotoSans", "", "./fonts/NotoSans-Regular.ttf", uni=True)
     pdf.set_font("NotoSans", size=12)
 
+    print(f"start converting {input_file} to {output_file}")
+
     with open(input_file, 'r', encoding='utf-8') as file:
         for line in file:
             # Verwende multi_cell, um Zeilenumbrüche innerhalb der Seite zu ermöglichen

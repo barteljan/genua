@@ -2,7 +2,7 @@ import subprocess
 import os
 import glob
 import configparser
-import json
+import argparse
 
 def delete_files():
     print("Deleting all JSON and TXT files in the build folder...")
@@ -14,7 +14,7 @@ def delete_files():
 
 def run_scrapy():
     print("Running Scrapy to crawl data...")
-    subprocess.run(["scrapy", "crawl", "phpBB","-o","../build/posts.json"], check=True, cwd="phpBB_scraper")
+    subprocess.run(["scrapy", "crawl", "phpBB", "-o", "../build/posts.json"], check=True, cwd="phpBB_scraper")
     print("Scrapy crawl completed.")
 
 def run_sort():
@@ -82,13 +82,21 @@ def clean_all_txt_files():
     print("Cleaning all .txt files in ./build/...")
     txt_files = glob.glob('./build/*.txt')
     for txt_file in txt_files:
-        cleaned_file = txt_file
-        subprocess.run(["python", "clean_text_file.py", "." +txt_file, "." +cleaned_file], check=True, cwd="phpBB_scraper")
-        print(f"Cleaned {txt_file} and saved as {cleaned_file}")
+        cleaned_file = txt_file.replace(".txt", "_cleaned.txt")
+        subprocess.run(["python", "clean_text_file.py", "." + txt_file, "." + cleaned_file], check=True, cwd="phpBB_scraper")
+        os.replace(cleaned_file, txt_file)  # Ersetze die Originaldatei mit der bereinigten Datei
+        print(f"Cleaned {txt_file} and saved as {txt_file}")
 
 if __name__ == "__main__":
-    delete_files()
-    run_scrapy()
+    parser = argparse.ArgumentParser(description="Run the full pipeline for processing data.")
+    parser.add_argument("--skip-delete", action="store_true", help="Skip deleting files in the build folder.")
+    parser.add_argument("--skip-scrape", action="store_true", help="Skip scraping data with Scrapy.")
+    args = parser.parse_args()
+
+    if not args.skip_delete:
+        delete_files()
+    if not args.skip_scrape:
+        run_scrapy()
     run_sort()
     search_filtered_lists()
     search_user_threads()
