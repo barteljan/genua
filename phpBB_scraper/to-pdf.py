@@ -14,8 +14,11 @@ def text_to_pdf(input_file, output_file):
 
     with open(input_file, 'r', encoding='utf-8') as file:
         for line in file:
-            # Verwende multi_cell, um Zeilenumbrüche innerhalb der Seite zu ermöglichen
-            pdf.multi_cell(0, 10, txt=line.strip())
+            if line.strip() == "":  # Leere Zeilen beibehalten
+                pdf.ln(10)  # Fügt eine leere Zeile im PDF hinzu
+            else:
+                # Automatische Zeilenumbrüche für lange Zeilen
+                pdf.multi_cell(0, 10, txt=line.strip())
 
     pdf.output(output_file)
     print(f"PDF saved as {output_file}")

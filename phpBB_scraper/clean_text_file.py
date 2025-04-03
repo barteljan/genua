@@ -9,9 +9,9 @@ def is_valid_character(char):
 def clean_text_file(input_file, output_file):
     with open(input_file, 'r', encoding='utf-8') as infile, open(output_file, 'w', encoding='utf-8') as outfile:
         for line in infile:
-            # Ersetze problematische Zeichen durch '?'
-            cleaned_line = ''.join(char if is_valid_character(char) else '?' for char in line)
-            outfile.write(cleaned_line)
+            # Bereinige nur die Zeichen in der Zeile, lasse Zeilenumbrüche unangetastet
+            cleaned_line = ''.join(char if is_valid_character(char) else '?' for char in line.rstrip())
+            outfile.write(cleaned_line + '\n')  # Füge den Zeilenumbruch wieder hinzu
 
     print(f"Cleaned file saved as {output_file}")
 
