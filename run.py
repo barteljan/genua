@@ -78,6 +78,14 @@ def convert_txt_to_pdf():
         subprocess.run(["python", "to-pdf.py", "." + txt_file, "." + pdf_file], check=True, cwd="phpBB_scraper")
         print(f"Converted {txt_file} to {pdf_file}")
 
+def clean_all_txt_files():
+    print("Cleaning all .txt files in ./build/...")
+    txt_files = glob.glob('./build/*.txt')
+    for txt_file in txt_files:
+        cleaned_file = txt_file
+        subprocess.run(["python", "clean_text_file.py", "." +txt_file, "." +cleaned_file], check=True, cwd="phpBB_scraper")
+        print(f"Cleaned {txt_file} and saved as {cleaned_file}")
+
 if __name__ == "__main__":
     delete_files()
     run_scrapy()
@@ -86,4 +94,5 @@ if __name__ == "__main__":
     search_user_threads()
     run_split()
     run_to_text()
+    clean_all_txt_files()
     convert_txt_to_pdf()

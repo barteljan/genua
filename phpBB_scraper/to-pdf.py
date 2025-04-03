@@ -7,8 +7,8 @@ def text_to_pdf(input_file, output_file):
     pdf.add_page()
 
     # Verwenden Sie eine Unicode-kompatible Schriftart
-    pdf.add_font("DejaVu", "", "./fonts/DejaVuSans.ttf", uni=True)
-    pdf.set_font("DejaVu", size=12)
+    pdf.add_font("NotoSans", "", "./fonts/NotoSans-Regular.ttf", uni=True)
+    pdf.set_font("NotoSans", size=12)
 
     with open(input_file, 'r', encoding='utf-8') as file:
         for line in file:
