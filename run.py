@@ -3,11 +3,34 @@ import os
 import glob
 import configparser
 import argparse
+import json
+import time
+from datetime import datetime
 
-def delete_files(skip_posts_json=False, skip_pdfs=False):
+
+def delete_posts_json(skip_posts_json=False):
+    """
+    Deletes the posts.json file in the build directory.
+    If skip_posts_json=True, the posts.json file will not be deleted.
+    """
+    print("Deleting posts.json in ./build/...")
+    posts_json_path = os.path.join('./build', 'posts.json')
+
+    if skip_posts_json:
+        print("Skipping deletion of posts.json.")
+        return
+
+    if os.path.exists(posts_json_path):
+        try:
+            os.remove(posts_json_path)
+            print(f"Deleted: {posts_json_path}")
+        except Exception as e:
+            print(f"Failed to delete {posts_json_path}. Reason: {e}")
+
+
+def delete_files(skip_pdfs=False):
     """
     Deletes all JSON, TXT, and PDF files in the build directory.
-    If skip_posts_json=True, the posts.json file will not be deleted.
     If skip_pdfs=True, PDF files will not be deleted.
     """
     print("Deleting files in ./build/...")
@@ -16,10 +39,6 @@ def delete_files(skip_posts_json=False, skip_pdfs=False):
     files = glob.glob(os.path.join(build_dir, '*'))
 
     for file in files:
-        # Skip posts.json if skip_posts_json is enabled
-        if skip_posts_json and os.path.basename(file) == "posts.json":
-            continue
-
         # Skip PDF files if skip_pdfs is enabled
         if skip_pdfs and file.endswith('.pdf'):
             continue
@@ -32,10 +51,34 @@ def delete_files(skip_posts_json=False, skip_pdfs=False):
             except Exception as e:
                 print(f"Failed to delete {file}. Reason: {e}")
 
-def run_scrapy():
-    print("Running Scrapy to crawl data...")
-    subprocess.run(["scrapy", "crawl", "phpBB", "-o", "../build/posts.json"], check=True, cwd="phpBB_scraper")
-    print("Scrapy crawl completed.")
+
+def run_scrapy(max_retries=3, delay=5):
+    """
+    Runs Scrapy to crawl data. Retries up to `max_retries` times if no posts are scraped.
+    """
+    for attempt in range(1, max_retries + 1):
+        print(f"Running Scrapy (Attempt {attempt}/{max_retries})...")
+        subprocess.run(["scrapy", "crawl", "phpBB", "-o", "../build/posts.json"], check=True, cwd="phpBB_scraper")
+        print("Scrapy crawl completed.")
+
+        # Check if posts.json contains at least one post
+        posts_json_path = './build/posts.json'
+        if os.path.exists(posts_json_path):
+            with open(posts_json_path, 'r', encoding='utf-8') as file:
+                try:
+                    posts = json.load(file)
+                    if len(posts) > 0:
+                        print(f"Scraping successful: {len(posts)} posts found.")
+                        return  # Exit the function if scraping is successful
+                except json.JSONDecodeError:
+                    print("Error decoding posts.json. Retrying...")
+
+        print(f"No posts found. Retrying in {delay} seconds...")
+        time.sleep(delay)
+
+    # If all retries fail, raise an exception
+    raise RuntimeError("Scraping failed after multiple attempts. No posts were found.")
+
 
 def run_sort():
     print("Running sort.py to sort the data...")
@@ -46,7 +89,7 @@ def run_sort():
     print("Building post tree...")
     input_file = './build/posts-sorted.json'
     output_file = './data/post_tree.json'
-    subprocess.run(["python", "build_post_tree.py","." + input_file, "." + output_file], check=True, cwd="phpBB_scraper")
+    subprocess.run(["python", "build_post_tree.py", "." + input_file, "." + output_file], check=True, cwd="phpBB_scraper")
     print("Post tree has been built.")
     subprocess.run(["python", "count_posts_in_tree.py"], check=True, cwd="phpBB_scraper")
 
@@ -55,14 +98,14 @@ def run_sort():
     os.replace(cleaned_file, output_file)
 
 
-
 def run_split():
     print("Running split.py to split the text files into multiple files...")
     txt_files = glob.glob('./build/*.txt')  # Nur .txt-Dateien auswählen
     for txt_file in txt_files:
         output_prefix = txt_file.replace('.txt', '')
-        subprocess.run(["python", "split.py", "." + txt_file, "." + output_prefix, "480000"], check=True, cwd="phpBB_scraper")
+        subprocess.run(["python", "split.py", "." + txt_file, "." + output_prefix, "450000"], check=True, cwd="phpBB_scraper")
         print(f"Splitting completed for {txt_file}")
+
 
 def search_filtered_lists():
     print("Reading filtered lists from config file...")
@@ -78,6 +121,7 @@ def search_filtered_lists():
         subprocess.run(["python", "search.py", input_file, output_file, item], check=True, cwd="phpBB_scraper")
         print(f"Results for {item} saved to {output_file}")
 
+
 def search_user_threads():
     print("Reading filtered lists from config file...")
     config = configparser.ConfigParser()
@@ -92,6 +136,7 @@ def search_user_threads():
         output_file = f'../build/{search_term}_user.json'
         subprocess.run(["python", "search-user-threads.py", input_file, output_file, item], check=True, cwd="phpBB_scraper")
         print(f"Results for {item} saved to {output_file}")
+
 
 def run_to_text():
     print("Running to-text.py to convert JSON files to text...")
@@ -110,6 +155,7 @@ def run_to_text():
     subprocess.run(["python", "to-text.py", post_tree_file, post_tree_text_file], check=True, cwd="phpBB_scraper")
     print(f"Converted {post_tree_file} to text")
 
+
 def convert_txt_to_pdf():
     print("Converting all .txt files in ./build/ to PDFs...")
     txt_files = glob.glob("./build/*.txt")
@@ -118,14 +164,39 @@ def convert_txt_to_pdf():
         subprocess.run(["python", "to-pdf.py", "." + txt_file, "." + pdf_file], check=True, cwd="phpBB_scraper")
         print(f"Converted {txt_file} to {pdf_file}")
 
-def clean_all_txt_files():
-    print("Cleaning all .txt files in ./build/...")
-    txt_files = glob.glob('./build/*.txt')
-    for txt_file in txt_files:
-        cleaned_file = txt_file.replace(".txt", "_cleaned.txt")
-        subprocess.run(["python", "clean_text_file.py", "." + txt_file, "." + cleaned_file], check=True, cwd="phpBB_scraper")
-        os.replace(cleaned_file, txt_file)  # Replace the original file with the cleaned file
-        print(f"Cleaned {txt_file} and saved as {txt_file}")
+
+def load_statistics(stats_file):
+    """
+    Lädt die bestehende statistics.json, falls sie existiert.
+    """
+    if os.path.exists(stats_file):
+        with open(stats_file, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    return {}
+
+
+def write_statistics(start_time, end_time, last_scrape_time, stats_file='./data/statistics.json'):
+    """
+    Schreibt die Statistikdaten in eine JSON-Datei im data-Verzeichnis.
+    """
+    duration = (end_time - start_time).total_seconds()
+
+    # Bestehende Statistikdaten laden
+    existing_stats = load_statistics(stats_file)
+
+    # Aktualisiere die Statistikdaten
+    statistics = {
+        "last_scrape_time": last_scrape_time.isoformat() if last_scrape_time else existing_stats.get("last_scrape_time"),
+        "script_start_time": start_time.isoformat(),
+        "script_end_time": end_time.isoformat(),
+        "total_duration_seconds": duration
+    }
+
+    os.makedirs(os.path.dirname(stats_file), exist_ok=True)  # Erstelle das Verzeichnis, falls es nicht existiert
+    with open(stats_file, 'w', encoding='utf-8') as file:
+        json.dump(statistics, file, ensure_ascii=False, indent=4)
+    print(f"Statistics written to {stats_file}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the full pipeline for processing data.")
@@ -134,19 +205,35 @@ if __name__ == "__main__":
     parser.add_argument("--skip-scrape", action="store_true", help="Skip scraping data with Scrapy.")
     args = parser.parse_args()
 
-    # Delete files based on the options --skip-delete and --generate-pdfs
-    delete_files(skip_posts_json=args.skip_delete, skip_pdfs=not args.generate_pdfs)
+    # Erfasse den Startzeitpunkt des Skripts
+    script_start_time = datetime.now()
+
+    delete_posts_json(skip_posts_json=args.skip_delete)
+
+    stats_file = './data/statistics.json'
+    existing_stats = load_statistics(stats_file)
+    last_scrape_time = existing_stats.get("last_scrape_time")
 
     if not args.skip_scrape:
-        run_scrapy()
+        try:
+            run_scrapy()
+            last_scrape_time = datetime.now()  # Erfasse den Zeitpunkt des letzten Scrapes
+        except RuntimeError as e:
+            print(str(e))
+            exit(1)  # Beende das Skript, wenn Scraping fehlschlägt
+
+    delete_files(skip_pdfs=not args.generate_pdfs)
     run_sort()
     search_filtered_lists()
     search_user_threads()
     run_to_text()
-    #clean_all_txt_files()
     run_split()
 
-    # Generate PDFs only if --generate-pdfs is set
     if args.generate_pdfs:
-        #print("starting generating pdfs")
         convert_txt_to_pdf()
+
+    # Erfasse den Endzeitpunkt des Skripts
+    script_end_time = datetime.now()
+
+    # Schreibe die Statistikdaten in die statistics.json
+    write_statistics(script_start_time, script_end_time, last_scrape_time, stats_file)
