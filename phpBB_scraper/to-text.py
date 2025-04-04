@@ -36,19 +36,21 @@ def write_tree_to_text(tree, file, line_length):
                 file.write("=" * line_length + "\n")  # Linie zur Abgrenzung
                 for post in value["Posts"]:
                     write_post_to_text(post, file, line_length)
+            elif isinstance(value, list):
+                for post in value:
+                    write_post_to_text(post, file, line_length)
             elif isinstance(value, dict):
                 # Rekursiv durch andere Unterknoten navigieren
                 write_tree_to_text(value, file, line_length)
             else:
-                # Unerwarteter Wert, ignoriere ihn oder logge eine Warnung
-                print(f"Warning: Unexpected value for key '{key}': {value}")
-                print(f"tree: {tree}")
+                # Unerwarteter Wert, Exception auslösen
+                raise ValueError(f"Unexpected value for key '{key}': {value}")
     elif isinstance(tree, list):
-        for item in tree:
-            write_tree_to_text(item, file, line_length)
+        for post in tree:
+            write_post_to_text(post, file, line_length)
     else:
-        # Unerwarteter Typ, ignoriere ihn oder logge eine Warnung
-        print(f"Warning: Unexpected tree structure: {tree}")
+        # Unerwarteter Typ, Exception auslösen
+        raise TypeError(f"Unexpected tree structure: {tree}")
 
 def wrap_text(text, line_length):
     """

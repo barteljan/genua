@@ -44,10 +44,11 @@ def run_sort():
 
     # Build the post tree
     print("Building post tree...")
-    input_file = '../build/posts-sorted.json'
+    input_file = './build/posts-sorted.json'
     output_file = './data/post_tree.json'
-    subprocess.run(["python", "build_post_tree.py", input_file, "." + output_file], check=True, cwd="phpBB_scraper")
+    subprocess.run(["python", "build_post_tree.py","." + input_file, "." + output_file], check=True, cwd="phpBB_scraper")
     print("Post tree has been built.")
+    subprocess.run(["python", "count_posts_in_tree.py"], check=True, cwd="phpBB_scraper")
 
     cleaned_file = output_file.replace(".json", "_cleaned.json")
     subprocess.run(["python", "clean_text_file.py", "." + output_file, "." + cleaned_file], check=True, cwd="phpBB_scraper")
@@ -147,4 +148,5 @@ if __name__ == "__main__":
 
     # Generate PDFs only if --generate-pdfs is set
     if args.generate_pdfs:
+        #print("starting generating pdfs")
         convert_txt_to_pdf()

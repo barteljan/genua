@@ -1,5 +1,6 @@
 import json
 import os
+import argparse
 
 def build_post_tree(input_file, output_file):
     """
@@ -50,23 +51,36 @@ def build_post_tree(input_file, output_file):
 
 def validate_tree_structure(tree):
     """
-    Validiert die Struktur des Baums und gibt Warnungen für unerwartete Werte aus.
+    Validiert die Struktur des Baums und wirft eine Exception bei unerwarteten Werten.
     """
+    keysToCheck = ["Threads", "Posts"]
+
     if isinstance(tree, dict):
         for key, value in tree.items():
-            if not isinstance(value, dict):
-                print(f"Warning: Unexpected value for key '{key}': {value}")
-            elif "Threads" in value and not isinstance(value["Threads"], dict):
-                print(f"Warning: 'Threads' for key '{key}' is not a dictionary.")
-            elif "Posts" in value and not isinstance(value["Posts"], list):
-                print(f"Warning: 'Posts' for key '{key}' is not a list.")
-            else:
+                        
+            if key == "Posts" and not isinstance(value, list):
+                raise ValueError(f"'Posts' for key '{key}' is not a list.")
+            
+            if key == "Threads" and not isinstance(value, dict):
+                raise ValueError(f"'Posts' for key '{key}' is not a dict.")
+            
+            if isinstance(value, dict) or isinstance(value, list):
+                # Rekursive Validierung für verschachtelte Strukturen
                 validate_tree_structure(value)
+                return
+            
+            if key not in keysToCheck and not isinstance(value, str):
+                raise ValueError(f"Unexpected value for key '{key}': {value}")
+            
+      
     elif isinstance(tree, list):
         for item in tree:
             validate_tree_structure(item)
 
 if __name__ == "__main__":
-    input_file = './build/posts-sorted.json'
-    output_file = './data/post_tree.json'
-    build_post_tree(input_file, output_file)
+    parser = argparse.ArgumentParser(description="Build a post tree from a sorted posts JSON file.")
+    parser.add_argument("input_file", type=str, help="The input JSON file containing sorted posts.")
+    parser.add_argument("output_file", type=str, help="The output JSON file to save the post tree.")
+    args = parser.parse_args()
+
+    build_post_tree(args.input_file, args.output_file)
