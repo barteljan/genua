@@ -5,6 +5,36 @@ from bs4 import BeautifulSoup
 from scrapy.http import Request
 import configparser
 import os
+import json
+from datetime import datetime, timedelta
+
+# Function to load statistics dynamically
+def load_statistics(stats_file):
+    """
+    Loads the statistics.json file if it exists.
+    Returns an empty dictionary if the file does not exist.
+    """
+    if os.path.exists(stats_file):
+        with open(stats_file, 'r', encoding='utf-8') as file:
+            return json.load(file)
+    print(f"Warning: {stats_file} not found. Defaulting to index.php.")
+    return {}
+
+# Determine if we should start with search.php or index.php
+statistics_file = os.path.join(os.path.dirname(__file__), '../../../data/statistics.json')
+use_search_page = False
+
+statistics = load_statistics(statistics_file)
+last_scrape_time_str = statistics.get("last_scrape_time")
+if last_scrape_time_str:
+    try:
+        last_scrape_time = datetime.fromisoformat(last_scrape_time_str)
+        if datetime.now() - last_scrape_time < timedelta(days=7):
+            use_search_page = True
+    except ValueError:
+        print("Invalid last_scrape_time format in statistics.json. Defaulting to index.php.")
+else:
+    print("No last_scrape_time found in statistics.json. Defaulting to index.php.")
 
 # Read credentials from the config file
 config = configparser.ConfigParser()
@@ -74,10 +104,14 @@ class PhpbbSpider(scrapy.Spider):
             )
             yield form_request
         else:
-            # REQUEST SUB-FORUM TITLE LINKS
-            links = response.xpath('//a[@class="forumtitle"]/@href').extract()
-            for link in links:
-                yield scrapy.Request(response.urljoin(link), callback=self.parse_topics)
+            if use_search_page:
+                search_url = 'https://forum.genua-bei-nacht.de/search.php?search_id=active_topics'
+                yield scrapy.Request(search_url, callback=self.parse_topics)
+            else:
+                # REQUEST SUB-FORUM TITLE LINKS
+                links = response.xpath('//a[@class="forumtitle"]/@href').extract()
+                for link in links:
+                    yield scrapy.Request(response.urljoin(link), callback=self.parse_topics)
 
     def after_login(self, response):
         # CHECK LOGIN SUCCESS BEFORE MAKING REQUESTS
@@ -85,10 +119,15 @@ class PhpbbSpider(scrapy.Spider):
             self.logger.error('Login failed.')
             return
         else:
-            # REQUEST SUB-FORUM TITLE LINKS
-            links = response.xpath('//a[@class="forumtitle"]/@href').extract()
-            for link in links:
-                yield scrapy.Request(response.urljoin(link), callback=self.parse_topics)
+            if use_search_page:
+                search_url = 'https://forum.genua-bei-nacht.de/search.php?search_id=active_topics'
+                yield scrapy.Request(search_url, callback=self.parse_topics)
+            else:
+                # REQUEST SUB-FORUM TITLE LINKS
+                links = response.xpath('//a[@class="forumtitle"]/@href').extract()
+                for link in links:
+                    yield scrapy.Request(response.urljoin(link), callback=self.parse_topics)
+
 
     def parse_topics(self, response):
 
