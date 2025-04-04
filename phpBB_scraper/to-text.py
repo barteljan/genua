@@ -42,6 +42,7 @@ def write_tree_to_text(tree, file, line_length):
             else:
                 # Unerwarteter Wert, ignoriere ihn oder logge eine Warnung
                 print(f"Warning: Unexpected value for key '{key}': {value}")
+                print(f"tree: {tree}")
     elif isinstance(tree, list):
         for item in tree:
             write_tree_to_text(item, file, line_length)
