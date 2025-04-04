@@ -39,6 +39,13 @@ def delete_files(skip_pdfs=False):
     files = glob.glob(os.path.join(build_dir, '*'))
 
     for file in files:
+
+         # Skip posts.json explicitly
+        if os.path.basename(file) == "posts.json":
+            print(f"Skipping deletion of {file}")
+            continue
+
+
         # Skip PDF files if skip_pdfs is enabled
         if skip_pdfs and file.endswith('.pdf'):
             continue
@@ -74,6 +81,7 @@ def run_scrapy(max_retries=3, delay=5):
                     print("Error decoding posts.json. Retrying...")
 
         print(f"No posts found. Retrying in {delay} seconds...")
+        delete_posts_json(skip_posts_json=False)  # Delete posts.json before retrying
         time.sleep(delay)
 
     # If all retries fail, raise an exception
