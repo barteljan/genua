@@ -137,7 +137,6 @@ class PhpbbSpider(scrapy.Spider):
         if breadcrumb and BLACKLIST:
             for item in breadcrumb:
                 if item in BLACKLIST:
-                    self.logger.info(f"Found blacklisted item '{item}' in breadcrumb. Exiting parse_topics.")
                     return
 
         # REQUEST SUB-FORUM TITLE LINKS
@@ -154,7 +153,7 @@ class PhpbbSpider(scrapy.Spider):
         next_page_link = response.xpath('//a[@rel="next"]/@href').get()
         if next_page_link:
             next_page_url = response.urljoin(next_page_link)
-            yield scrapy.Request(next_page_url, callback=self.parse_posts)
+            yield scrapy.Request(next_page_url, callback=self.parse_topics)
     
     def clean_quote(self, string):
         # CLEAN HTML TAGS FROM POST TEXT, MARK QUOTES
@@ -181,8 +180,17 @@ class PhpbbSpider(scrapy.Spider):
         breadcrumbs = response.xpath('//ul[@id="nav-breadcrumbs"]/li[@class="breadcrumbs"]//span/a/span/text()').getall()
         forum = " / ".join(breadcrumbs)
 
+        # Check if any item in breadcrumb is in the blacklist
+        if breadcrumbs and BLACKLIST:
+            for item in breadcrumbs:
+                if item in BLACKLIST:
+                    return
+
         # Extrahiere den Thread-Titel
         thread_title = response.xpath('//h2[@class="topic-title"]/a/text()').get()
+
+        if breadcrumbs:
+            self.logger.info(forum + " / " + thread_title)
 
         # Kombiniere Breadcrumbs und Thread-Titel zu 'full_path'
         full_path = f"{forum} / {thread_title}" if thread_title else forum
